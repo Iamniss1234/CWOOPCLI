@@ -47,11 +47,11 @@ public class TicketPool {
      * @param maxTickets The maximum capacity of tickets in the pool.
      */
     private TicketPool(int initialTickets, int maxTickets) {
-        this.initialTickets = initialTickets; // Store the initial value
+        this.initialTickets = initialTickets;
         this.maxTicketCapacity = maxTickets;
 
         for (int i = 0; i < initialTickets; i++) {
-            tickets.add(1);  // Adding tickets to the pool
+            tickets.add(1);  // Adding intial tickets to the pool
         }
     }
 

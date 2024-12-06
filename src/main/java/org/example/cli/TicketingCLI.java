@@ -144,7 +144,7 @@ public class TicketingCLI {
     /**
      * Handle both customer retrieving tickets and vendor releasing tickets simultaneously.
      */
-    private static void handleBothUsers() throws InvalidConfigurationException, InterruptedException {
+    private static void handleBothUsers() throws InvalidConfigurationException{
         while (true) {
             int input = getValidatedInput("Start - 1\nStop - 0");
             if (input == 1) {
@@ -167,7 +167,7 @@ public class TicketingCLI {
      *
      * @param userType - customer or vendor
      */
-    private static void handleUserType(String userType) throws InvalidConfigurationException, InterruptedException {
+    private static void handleUserType(String userType) throws InvalidConfigurationException{
         while (true) {
             int action = getValidatedInput(userType + " - Start(1) / Stop(0): ");
             if (action == 1) {
