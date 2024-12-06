@@ -1,6 +1,7 @@
 package org.example.cli;
 
 import org.example.exception.InvalidConfigurationException;
+import org.example.logger.Loging;
 import org.example.ticketPool.TicketPool;
 import org.example.User;
 import org.example.UserFactory;
@@ -19,6 +20,7 @@ import java.util.Scanner;
  */
 
 public class TicketingCLI {
+
     private static final ArrayList<Thread> threads = new ArrayList<>();
     private static final Scanner scanner = new Scanner(System.in);
     private static final Configuration config = Configuration.getInstance();
@@ -58,6 +60,7 @@ public class TicketingCLI {
         boolean isConfigLoaded = false;
         while (!isConfigLoaded) {
             try {
+                Loging.log("Loading previous configuration.....");
                 config.loadConfiguration("config.json");
                 displayConfiguration();
 

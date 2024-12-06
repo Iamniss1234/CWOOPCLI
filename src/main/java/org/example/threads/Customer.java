@@ -1,5 +1,6 @@
 package org.example.threads;
 
+import org.example.logger.Loging;
 import org.example.ticketPool.TicketPool;
 import org.example.User;
 import org.example.config.Configuration;
@@ -24,6 +25,7 @@ public class Customer implements User {
         while (true) {
             if (Thread.currentThread().isInterrupted()) {
                 System.out.println(Thread.currentThread().getName() + " was interrupted, exiting...");
+                Loging.log(Thread.currentThread().getName() + " was interrupted, exiting...");
                 break;
             }
 
@@ -31,6 +33,7 @@ public class Customer implements User {
             if (!ticketPurchased) {
                 // Exit if no tickets are available
                 System.out.println(Thread.currentThread().getName() + " exiting as no tickets are available.");
+                Loging.log(Thread.currentThread().getName() + " exiting as no tickets are available.");
                 break;
             }
 
@@ -39,6 +42,7 @@ public class Customer implements User {
                 Thread.sleep(config.getCustomerRetrievalRate() * 1000L);
             } catch (InterruptedException e) {
                 System.out.println(Thread.currentThread().getName() + " was interrupted during sleep.");
+                Loging.log(Thread.currentThread().getName() + " was interrupted during sleep.");
                 Thread.currentThread().interrupt();
                 break;
             }

@@ -1,5 +1,6 @@
 package org.example.ticketPool;
 
+import org.example.logger.Loging;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -80,13 +81,14 @@ public class TicketPool {
         lock.lock();
         try {
             if (tickets.size() < maxTicketCapacity) {
-//                availableTickets++;
                 totalTicketsReleased++;  // Increment the released counter
                 tickets.add(1);
                 logger.info("{} released a ticket - tickets remaining {}", vendorID, tickets.size());
+                Loging.log(vendorID+" released a ticket - tickets remaining "+tickets.size());
                 return true;
             } else {
                 logger.warn("Max capacity reached.");
+                Loging.log("Max capacity reached.");
                 return false;
             }
         } finally {
@@ -105,13 +107,14 @@ public class TicketPool {
         lock.lock();
         try {
             if (!tickets.isEmpty()) {
-//                availableTickets--;
                 totalTicketsPurchased++;  // Increment the purchased counter
                 tickets.remove(0);
                 logger.info("{} purchased a ticket - tickets remaining {}", customerId, tickets.size());
+                Loging.log(customerId+" purchased a ticket - tickets remaining "+tickets.size());
                 return true; // Successfully purchased a ticket
             } else {
                 logger.warn("No tickets available for customer to purchase.");
+                Loging.log("No tickets available for customer to purchase.");
                 return false; // No tickets left
             }
         } finally {

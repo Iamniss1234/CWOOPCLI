@@ -1,5 +1,6 @@
 package org.example.threads;
 
+import org.example.logger.Loging;
 import org.example.ticketPool.TicketPool;
 import org.example.User;
 import org.example.config.Configuration;
@@ -29,12 +30,14 @@ public class Vendor implements User {
         while (true) {
             if (Thread.currentThread().isInterrupted()) {
                 System.out.println(Thread.currentThread().getName() + " was interrupted, exiting...");
+                Loging.log(Thread.currentThread().getName() + " was interrupted, exiting...");
                 break;
             }
             boolean ticketReleased = pool.addTickets(Thread.currentThread().getName());
             if (!ticketReleased) {
                 // Exit if no tickets are available
                 System.out.println(Thread.currentThread().getName() + " exiting as max capacity reached.");
+                Loging.log(Thread.currentThread().getName() + " exiting as max capacity reached.");
                 break;
             }
 
@@ -43,6 +46,7 @@ public class Vendor implements User {
                 Thread.sleep(config.getTicketReleaseRate() * 1000L);
             } catch (InterruptedException e) {
                 System.out.println(Thread.currentThread().getName() + " was interrupted during sleep.");
+                Loging.log(Thread.currentThread().getName() + " was interrupted during sleep.");
                 Thread.currentThread().interrupt();
                 break;
             }
