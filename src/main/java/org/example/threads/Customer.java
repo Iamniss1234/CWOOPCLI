@@ -1,4 +1,8 @@
-package org.example;
+package org.example.threads;
+
+import org.example.ticketPool.TicketPool;
+import org.example.User;
+import org.example.config.Configuration;
 
 /**
  * Represents a Customer in the ticketing system.
@@ -17,16 +21,28 @@ public class Customer implements User {
         Configuration config = Configuration.getInstance();
         TicketPool pool = TicketPool.getInstance(config.getTotalTickets(), config.getMaxTicketCapacity());
 
-        // Continuously try to remove a ticket as long as there are available tickets and the thread is not interrupted
-        while (!Thread.currentThread().isInterrupted() && pool.getAvailableTickets() > 0) {
-            pool.removeTicket(Thread.currentThread().getName());
+        while (true) {
+            if (Thread.currentThread().isInterrupted()) {
+                System.out.println(Thread.currentThread().getName() + " was interrupted, exiting...");
+                break;
+            }
+
+            boolean ticketPurchased = pool.removeTicket(Thread.currentThread().getName());
+            if (!ticketPurchased) {
+                // Exit if no tickets are available
+                System.out.println(Thread.currentThread().getName() + " exiting as no tickets are available.");
+                break;
+            }
+
             try {
                 // Sleep based on the customer retrieval rate from the configuration
                 Thread.sleep(config.getCustomerRetrievalRate() * 1000L);
             } catch (InterruptedException e) {
-                // Restore the interrupted status and exit if interrupted
+                System.out.println(Thread.currentThread().getName() + " was interrupted during sleep.");
                 Thread.currentThread().interrupt();
+                break;
             }
         }
     }
+
 }

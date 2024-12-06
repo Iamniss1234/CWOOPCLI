@@ -26,7 +26,7 @@
             <configuration>
               <transformers>
                 <transformer>
-                  <mainClass>org.example.TicketingCLI</mainClass>
+                  <mainClass>org.example.cli.TicketingCLI</mainClass>
                 </transformer>
               </transformers>
             </configuration>

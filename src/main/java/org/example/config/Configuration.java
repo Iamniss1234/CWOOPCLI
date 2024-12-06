@@ -1,6 +1,8 @@
-package org.example;
+package org.example.config;
 
 import java.io.*;
+
+import org.example.exception.InvalidConfigurationException;
 import org.json.JSONObject;
 
 /**
@@ -9,6 +11,7 @@ import org.json.JSONObject;
  * customer retrieval rate, and maximum ticket capacity.
  */
 public class Configuration {
+
     private static Configuration instance;
 
     private int totalTickets;
@@ -43,7 +46,7 @@ public class Configuration {
      *
      * @param filePath the path to the configuration JSON file.
      */
-    public void loadConfiguration(String filePath) {
+    public void loadConfiguration(String filePath) throws InvalidConfigurationException {
         try (BufferedReader reader = new BufferedReader(new FileReader(filePath))) {
             StringBuilder jsonBuilder = new StringBuilder();
             String line;
@@ -51,12 +54,19 @@ public class Configuration {
                 jsonBuilder.append(line);
             }
             JSONObject jsonObject = new JSONObject(jsonBuilder.toString());
-            this.totalTickets = jsonObject.getInt("totalTickets");
-            this.ticketReleaseRate = jsonObject.getInt("ticketReleaseRate");
-            this.customerRetrievalRate = jsonObject.getInt("customerRetrievalRate");
-            this.maxTicketCapacity = jsonObject.getInt("maxTicketCapacity");
+
+            int loadedTotalTickets = jsonObject.getInt("totalTickets");
+            int loadedTicketReleaseRate = jsonObject.getInt("ticketReleaseRate");
+            int loadedCustomerRate = jsonObject.getInt("customerRetrievalRate");
+            int loadedMaxCapacity = jsonObject.getInt("maxTicketCapacity");
+
+            setTotalTickets(loadedTotalTickets);
+            setMaxTicketCapacity(loadedMaxCapacity);
+            setCustomerRetrievalRate(loadedCustomerRate);
+            setTicketReleaseRate(loadedTicketReleaseRate);
+
         } catch (IOException e) {
-            System.out.println("Error loading configuration: " + e.getMessage());
+            throw new InvalidConfigurationException("error loading the configuration "+ e.getMessage());
         }
     }
 
@@ -65,7 +75,7 @@ public class Configuration {
      *
      * @param filePath the path where the configuration JSON file will be saved.
      */
-    public void saveConfiguration(String filePath) {
+    public void saveConfiguration(String filePath) throws InvalidConfigurationException {
         JSONObject jsonObject = new JSONObject();
         jsonObject.put("totalTickets", totalTickets);
         jsonObject.put("ticketReleaseRate", ticketReleaseRate);
@@ -75,25 +85,52 @@ public class Configuration {
         try (BufferedWriter writer = new BufferedWriter(new FileWriter(filePath))) {
             writer.write(jsonObject.toString());
         } catch (IOException e) {
-            System.out.println("Error saving configuration: " + e.getMessage());
+            throw new InvalidConfigurationException("Error saving configuration: " + e.getMessage());
         }
     }
 
     // Setter methods
-    public void setTotalTickets(int totalTickets) {
+    public void setTotalTickets(int totalTickets) throws InvalidConfigurationException {
+        validatePositive("Total Tickets", totalTickets);
         this.totalTickets = totalTickets;
     }
 
-    public void setTicketReleaseRate(int ticketReleaseRate) {
+    public void setTicketReleaseRate(int ticketReleaseRate) throws InvalidConfigurationException {
+        validatePositive("Ticket Release Rate", ticketReleaseRate);
+        validateZero("Tickets Release Rate",ticketReleaseRate);
         this.ticketReleaseRate = ticketReleaseRate;
     }
 
-    public void setCustomerRetrievalRate(int customerRetrievalRate) {
+    public void setCustomerRetrievalRate(int customerRetrievalRate) throws InvalidConfigurationException {
+        validatePositive("Ticket Retrival Rate", customerRetrievalRate);
+        validateZero("Customer Retrival Rate",customerRetrievalRate);
         this.customerRetrievalRate = customerRetrievalRate;
     }
 
-    public void setMaxTicketCapacity(int maxTicketCapacity) {
+    public void setMaxTicketCapacity(int maxTicketCapacity) throws InvalidConfigurationException {
+        validatePositive("Max Ticket Capacity", maxTicketCapacity);
         this.maxTicketCapacity = maxTicketCapacity;
+
+    }
+    public void validateConfiguration() throws InvalidConfigurationException {
+        validateTicketCapacity(totalTickets, maxTicketCapacity);
+    }
+    private void validateTicketCapacity(int totalTickets, int maxCapacity) throws InvalidConfigurationException {
+        if (totalTickets > maxCapacity) {
+            throw new InvalidConfigurationException("Total tickets cannot exceed max ticket capacity. "+totalTickets+" "+maxCapacity);
+        }
+    }
+
+    private void validatePositive(String field, int value) throws InvalidConfigurationException {
+        if (value < 0) {
+            throw new InvalidConfigurationException(field + " must be a positive value.");
+        }
+    }
+
+    private void validateZero(String field, int value) throws InvalidConfigurationException {
+        if (value == 0) {
+            throw new InvalidConfigurationException(field + " must be a greater than zero.");
+        }
     }
 
     // Getter methods

@@ -1,5 +1,11 @@
-package org.example;
+package org.example.ticketPool;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.Collections;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.concurrent.locks.ReentrantLock;
 
 /**
@@ -9,11 +15,12 @@ import java.util.concurrent.locks.ReentrantLock;
  */
 public class TicketPool {
 
+    private final List<Integer> tickets = Collections.synchronizedList(new LinkedList<>());
+
+    private static final Logger logger = LoggerFactory.getLogger(TicketPool.class);
+
     /** The singleton instance of the TicketPool. */
     private static TicketPool instance;
-
-    /** The current number of available tickets in the pool. */
-    private int availableTickets;
 
     /** The maximum ticket capacity of the pool. */
     private final int maxTicketCapacity;
@@ -27,6 +34,11 @@ public class TicketPool {
     /** The total number of tickets purchased by customers. */
     private int totalTicketsPurchased = 0;
 
+    private final int initialTickets;
+
+
+
+
     /**
      * Private constructor to initialize the TicketPool with the initial ticket count and maximum capacity.
      * This constructor is private to enforce the singleton pattern.
@@ -35,8 +47,12 @@ public class TicketPool {
      * @param maxTickets The maximum capacity of tickets in the pool.
      */
     private TicketPool(int initialTickets, int maxTickets) {
-        this.availableTickets = initialTickets;
+        this.initialTickets = initialTickets; // Store the initial value
         this.maxTicketCapacity = maxTickets;
+
+        for (int i = 0; i < initialTickets; i++) {
+            tickets.add(1);  // Adding tickets to the pool
+        }
     }
 
     /**
@@ -60,15 +76,18 @@ public class TicketPool {
      *
      * @param vendorID The ID of the vendor adding the ticket.
      */
-    public void addTickets(String vendorID) {
+    public boolean addTickets(String vendorID) {
         lock.lock();
         try {
-            if (availableTickets < maxTicketCapacity) {
-                availableTickets++;
+            if (tickets.size() < maxTicketCapacity) {
+//                availableTickets++;
                 totalTicketsReleased++;  // Increment the released counter
-                System.out.println(vendorID + " added ticket. Total now: " + availableTickets);
+                tickets.add(1);
+                logger.info("{} released a ticket - tickets remaining {}", vendorID, tickets.size());
+                return true;
             } else {
-                System.out.println("Max tickets reached.");
+                logger.warn("Max capacity reached.");
+                return false;
             }
         } finally {
             lock.unlock();
@@ -81,20 +100,25 @@ public class TicketPool {
      *
      * @param customerId The ID of the customer purchasing the ticket.
      */
-    public void removeTicket(String customerId) {
+//
+    public boolean removeTicket(String customerId) {
         lock.lock();
         try {
-            if (availableTickets > 0) {
-                availableTickets--;
+            if (!tickets.isEmpty()) {
+//                availableTickets--;
                 totalTicketsPurchased++;  // Increment the purchased counter
-                System.out.println(customerId + " purchased a ticket - tickets remaining " + availableTickets);
+                tickets.remove(0);
+                logger.info("{} purchased a ticket - tickets remaining {}", customerId, tickets.size());
+                return true; // Successfully purchased a ticket
             } else {
-                System.out.println("No tickets available for customer to purchase.");
+                logger.warn("No tickets available for customer to purchase.");
+                return false; // No tickets left
             }
         } finally {
             lock.unlock();
         }
     }
+
 
     /**
      * Returns the current number of available tickets in the pool.
@@ -102,16 +126,7 @@ public class TicketPool {
      * @return The current number of available tickets.
      */
     public int getAvailableTickets() {
-        return availableTickets;
-    }
-
-    /**
-     * Returns the maximum ticket capacity of the pool.
-     *
-     * @return The maximum ticket capacity.
-     */
-    public int getMaxTicketCapacity() {
-        return maxTicketCapacity;
+        return tickets.size();
     }
 
     /**
@@ -122,6 +137,7 @@ public class TicketPool {
     public int getTotalTicketsReleased() {
         return totalTicketsReleased;
     }
+
 
     /**
      * Returns the total number of tickets purchased by customers.

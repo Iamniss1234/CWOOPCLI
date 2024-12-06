@@ -1,4 +1,8 @@
-package org.example;
+package org.example.threads;
+
+import org.example.ticketPool.TicketPool;
+import org.example.User;
+import org.example.config.Configuration;
 
 /**
  * The Vendor class implements the {@link User} interface and represents a vendor
@@ -21,17 +25,28 @@ public class Vendor implements User {
         Configuration config = Configuration.getInstance();
         TicketPool pool = TicketPool.getInstance(config.getTotalTickets(), config.getMaxTicketCapacity());
 
-        // Continue adding tickets until the pool reaches maximum capacity or the thread is interrupted
-        while (!Thread.currentThread().isInterrupted() && pool.getAvailableTickets() < pool.getMaxTicketCapacity()) {
-            pool.addTickets(Thread.currentThread().getName());
+
+        while (true) {
+            if (Thread.currentThread().isInterrupted()) {
+                System.out.println(Thread.currentThread().getName() + " was interrupted, exiting...");
+                break;
+            }
+            boolean ticketReleased = pool.addTickets(Thread.currentThread().getName());
+            if (!ticketReleased) {
+                // Exit if no tickets are available
+                System.out.println(Thread.currentThread().getName() + " exiting as max capacity reached.");
+                break;
+            }
 
             try {
-                // Sleep based on the configured ticket release rate
+                // Sleep based on the customer retrieval rate from the configuration
                 Thread.sleep(config.getTicketReleaseRate() * 1000L);
             } catch (InterruptedException e) {
-                // Re-interrupt the thread to preserve the interrupted status
+                System.out.println(Thread.currentThread().getName() + " was interrupted during sleep.");
                 Thread.currentThread().interrupt();
+                break;
             }
         }
     }
+
 }

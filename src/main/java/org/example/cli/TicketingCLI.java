@@ -1,6 +1,15 @@
-package org.example;
+package org.example.cli;
+
+import org.example.exception.InvalidConfigurationException;
+import org.example.ticketPool.TicketPool;
+import org.example.User;
+import org.example.UserFactory;
+import org.example.config.Configuration;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
+import java.util.InputMismatchException;
 import java.util.Scanner;
 
 /**
@@ -15,12 +24,10 @@ public class TicketingCLI {
     private static final Configuration config = Configuration.getInstance();
     private static TicketPool pool;
 
-    /**
-     * The main method initializes the ticketing system and starts the user interface loop.
-     *
-     * @param args Command-line arguments (not used).
-     */
-    public static void main(String[] args) {
+    private static final Logger logger = LoggerFactory.getLogger(TicketingCLI.class);
+
+
+    public void start() throws InvalidConfigurationException, InterruptedException {
         loadConfigurationPrompt();
 
         // Initialize TicketPool after loading configuration
@@ -36,14 +43,13 @@ public class TicketingCLI {
                 displayTicketSummary();
                 break;
             } else {
-                System.out.println("Invalid input");
+                logger.error("Invalid input");
             }
         }
 
         // Closing the scanner
         scanner.close();
     }
-
 
     /**
      * Prompts the user to load a configuration from a file or set a new configuration.
@@ -53,61 +59,84 @@ public class TicketingCLI {
         while (!isConfigLoaded) {
             try {
                 config.loadConfiguration("config.json");
-                System.out.println("Previous configuration loaded.\n" +
-                        "Total tickets: " + config.getTotalTickets() + "\n" +
-                        "Customer Retrieval Rate: " + config.getCustomerRetrievalRate() + "\n" +
-                        "Ticket Release Rate: " + config.getTicketReleaseRate() + "\n" +
-                        "Max Ticket Capacity: " + config.getMaxTicketCapacity() + "\n");
+                displayConfiguration();
 
-                int loadConfigChoice = getValidatedInput("Would you like to load the previous configuration? (1 = Yes, 0 = No): ");
+                int loadConfigChoice = getValidatedInput("Would you like to use the previous configuration? (1 = Yes, 0 = No): ");
                 if (loadConfigChoice == 1) {
                     isConfigLoaded = true;
                 } else if (loadConfigChoice == 0) {
                     setNewConfiguration();
                     isConfigLoaded = true;
                 } else {
-                    System.out.println("Invalid input. Please enter 1 or 0.");
+                    logger.error("Invalid input. Please enter 1 or 0.");
                 }
+            } catch (InvalidConfigurationException e) {
+                logger.error("Configuration error: " + e.getMessage());
+                logger.info("Invalid configuration detected. Please re-enter the configuration.");
+                setNewConfiguration(); // Reset to default values or prompt for new values
             } catch (Exception e) {
-                System.out.println("Error loading configuration: " + e.getMessage());
-                System.out.println("Proceeding with new configuration setup.");
-                setNewConfiguration();
-                isConfigLoaded = true;
+                logger.error("Unexpected error while loading configuration: " + e.getMessage());
+                logger.info("Proceeding with manual configuration setup.");
+                setNewConfiguration(); // Reset or prompt user
             }
         }
+
     }
 
 
     /**
      * Prompts the user to set the new configurations.
      */
-    private static void setNewConfiguration() {
-        config.setTotalTickets(getValidatedInput("Enter total tickets: "));
-        config.setTicketReleaseRate(getValidatedInput("Enter ticket release rate: "));
-        config.setCustomerRetrievalRate(getValidatedInput("Enter customer retrieval rate: "));
-        config.setMaxTicketCapacity(getValidatedInput("Enter max ticket capacity: "));
-        config.saveConfiguration("config.json");
-        System.out.println("New configuration saved.");
+    private static void setNewConfiguration(){
+        while(true){
+            try{
+                logger.info("Enter total tickets: ");
+                int TotalTickets = scanner.nextInt();
+
+                logger.info("Enter maxTicketCapacity: ");
+                int maxTicketCapacity = scanner.nextInt();
+
+                logger.info("Enter ticketReleaseRate: ");
+                int ticketReleaseRate = scanner.nextInt();
+
+                logger.info("Enter customerRetrivalRate: ");
+                int customerRetrivalRate = scanner.nextInt();
+
+                config.setTotalTickets(TotalTickets);
+                config.setMaxTicketCapacity(maxTicketCapacity);
+                config.setTicketReleaseRate(ticketReleaseRate);
+                config.setCustomerRetrievalRate(customerRetrivalRate);
+
+                config.validateConfiguration();
+
+                config.saveConfiguration("config.json");
+                logger.info("New configuration saved.");
+
+                break;
+
+            } catch (InvalidConfigurationException e) {
+                logger.error("Invalid configuration: " + e.getMessage());
+                logger.info("Please re-enter the configuration values.");
+            } catch (InputMismatchException e) {
+                logger.error("Invalid input type. Please enter numeric values.");
+                scanner.next();
+            }
+        }
+
     }
 
     /**
      * Validation check.
      */
+
     private static int getValidatedInput(String prompt) {
-        int value;
         while (true) {
-            System.out.println(prompt);
-            if (scanner.hasNextInt()) {
-                value = scanner.nextInt();
-                scanner.nextLine();  // Consume newline left-over
-                if (value >= 0) {
-                    return value;
-                } else {
-                    System.out.println("Please enter a positive number.");
-                }
-            } else {
-                System.out.println("Invalid input. Please enter a number.");
-                scanner.next();  // Consume invalid input
+            try {
+                logger.info(prompt);
+                return scanner.nextInt();
+            } catch (InputMismatchException e) {
+                logger.error("Invalid input type. Please enter a numeric value.");
+                scanner.next(); // Clear the invalid input
             }
         }
     }
@@ -115,20 +144,20 @@ public class TicketingCLI {
     /**
      * Handle both customer retrieving tickets and vendor releasing tickets simultaneously.
      */
-    private static void handleBothUsers() {
+    private static void handleBothUsers() throws InvalidConfigurationException, InterruptedException {
         while (true) {
             int input = getValidatedInput("Start - 1\nStop - 0");
             if (input == 1) {
-                System.out.println("Vendor starting releasing tickets...");
+                logger.info("Vendor starting releasing tickets...");
                 startUserThreads("vendor");
 
                 startUserThreads("customer");
-                System.out.println("Customer starting purchasing tickets...");
+                logger.info("Customer starting purchasing tickets...");
             } else if (input == 0) {
                 stopAllThreads();
                 break;
             } else {
-                System.out.println("Invalid input. Please enter 1 or 0.");
+                logger.error("Invalid input. Please enter 1 or 0.");
             }
         }
     }
@@ -138,7 +167,7 @@ public class TicketingCLI {
      *
      * @param userType - customer or vendor
      */
-    private static void handleUserType(String userType) {
+    private static void handleUserType(String userType) throws InvalidConfigurationException, InterruptedException {
         while (true) {
             int action = getValidatedInput(userType + " - Start(1) / Stop(0): ");
             if (action == 1) {
@@ -147,7 +176,7 @@ public class TicketingCLI {
                 stopAllThreads();
                 break;
             } else {
-                System.out.println("Invalid input. Please enter 1 or 0.");
+                logger.error("Invalid input. Please enter 1 or 0.");
             }
         }
     }
@@ -159,12 +188,13 @@ public class TicketingCLI {
      * @param userType - customer or vendor
      */
     private static void startUserThreads(String userType) {
-        for (int i = 0; i < 5; i++) {
+        for (int i = 0; i < 2; i++) {
             User user = UserFactory.createUser(userType);
             Thread userThread = new Thread(user, userType + ":" + (i + 1));
             threads.add(userThread);
-            System.out.println("Started " + userType + " thread: " + userThread.getName());
+            logger.info("Started " + userType + " thread: " + userThread.getName());
             userThread.start();
+
         }
     }
 
@@ -179,9 +209,9 @@ public class TicketingCLI {
                 thread.interrupt();
             }
             threads.clear();
-            System.out.println("All threads stopped.");
+            logger.info("All threads stopped.");
         } else {
-            System.out.println("No threads to stop.");
+            logger.info("No threads to stop.");
         }
     }
 
@@ -190,7 +220,7 @@ public class TicketingCLI {
      * Calls the stopThreads method and then updates the total available tickets
      * in the configuration based on the ticket pool's current status.
      */
-    private static void stopAllThreads() {
+    private static void stopAllThreads() throws InvalidConfigurationException {
         stopThreads();
         if (pool != null) {
             config.setTotalTickets(pool.getAvailableTickets());
@@ -203,7 +233,7 @@ public class TicketingCLI {
      * Ensures that all threads are stopped before displaying the summary.
      * Outputs details such as the total tickets, retrieval rate, release rate, and ticket availability.
      */
-    private static void displayTicketSummary() {
+    private static void displayTicketSummary() throws InvalidConfigurationException {
         stopThreads();  // Ensure threads are stopped before displaying summary
 
         if (pool != null) {
@@ -228,5 +258,13 @@ public class TicketingCLI {
             System.out.printf("%-30s %-10d\n", "Total Tickets Released", pool.getTotalTicketsReleased());
             System.out.printf("%-30s %-10d\n", "Total Tickets Purchased", pool.getTotalTicketsPurchased());
         }
+    }
+
+    private static void displayConfiguration() {
+        logger.info("Current Configuration:");
+        logger.info("Total Tickets: " + config.getTotalTickets());
+        logger.info("Max Ticket Capacity: " + config.getMaxTicketCapacity());
+        logger.info("Ticket Release Rate: " + config.getTicketReleaseRate());
+        logger.info("Customer Retrieval Rate: " + config.getCustomerRetrievalRate());
     }
 }
